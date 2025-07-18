@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/skapi-js@latest/dist/skapi.js"></script>
+<script src="service.js"></script>
+</head>
+<body>
+<main>
+<h1>Create Account</h1>
+<form action="login.html" onsubmit="skapi.signup(event).catch(err=>alert(err.message))">
+<input type="email" name="email" placeholder="Email" required>
+<input type="password" name="password" placeholder="Password" required>
+<input name="name" placeholder="Name">
+<input type="submit" value="Sign Up">
+</form>
+<p>Already have an account? <a href="login.html">Login</a></p>
+</main>
+</body>
+</html>
