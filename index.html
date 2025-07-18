@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/skapi-js@latest/dist/skapi.js"></script>
+<script src="service.js"></script>
+<script src="script.js"></script>
+</head>
+<body>
+<header>
+<span>Baksa World</span>
+<nav><a href="profile.html">Profile</a> <a href="javascript:logout()">Logout</a></nav>
+</header>
+<main>
+<section id="newPost">
+<form onsubmit="postPhoto(this,event)">
+<textarea name="description" placeholder="What's happening?" required></textarea>
+<input type="file" name="pic" accept="image/*" required>
+<input type="submit" value="Post" id="postButton">
+</form>
+</section>
+<section id="posts"></section>
+<button id="more" style="display:none">More</button>
+</main>
+<script>
+let currentUser;
+let fetchQuery = { table:{name:'posts',access_group:'authorized'} };
+requireLogin().then(u=>{currentUser=u; initialFetch();});
+function postPhoto(form,e){disableForm(form,true);skapi.postRecord(e,{table:{name:'posts',access_group:'authorized',subscription:{is_subscription_record:false,upload_to_feed:true}},source:{allow_multiple_reference:false},progress:p=>{if(p.status==='upload' && p.currentFile){postButton.value=Math.floor(p.progress)+'%';}}}).then(r=>{document.getElementById('posts').prepend(createArticle(r));form.reset();}).catch(err=>alert(err.message)).finally(()=>{postButton.value='Post';disableForm(form,false);});}
+async function createArticle(p){let art=document.createElement('article');let u=await skapi.getUsers({searchFor:'user_id',value:p.user_id});let name=u.list[0]?.name||'User';art.innerHTML=`<strong>${name}</strong> <small>${new Date(p.updated).toLocaleString()}</small><br><img src='${p.bin.pic[0].url}' style='max-width:100%'><p>${p.data?.description||''}</p><strong class='like' data-like='' onclick='like("${p.record_id}")'></strong> <span id='likecount-${p.record_id}'>${p.referenced_count}</span> <div id='comments-${p.record_id}'></div><form onsubmit='addComment(event,"${p.record_id}")'><input name='comment' placeholder='Comment'><input type='submit'></form>`; skapi.getRecords({table:'likes',index:{name:'$user_id',value:currentUser.user_id},reference:p.record_id}).then(l=>{if(l.list.length){likeIds[p.record_id]=l.list[0].record_id; art.querySelector('.like').setAttribute('data-like','❤️');}else{art.querySelector('.like').setAttribute('data-like','🩶');}}); return art;}
+let likeIds={};
+function like(id){let btn=document.querySelector(`#${CSS.escape('likecount-'+id)}`).previousElementSibling;let liked=btn.getAttribute('data-like');let countEl=document.getElementById('likecount-'+id);let count=parseInt(countEl.textContent);if(liked==='🩶'){skapi.postRecord(null,{table:'likes',reference:id}).then(r=>{likeIds[id]=r.record_id;btn.setAttribute('data-like','❤️');countEl.textContent=count+1;});}else{skapi.deleteRecords({record_id:likeIds[id]}).then(()=>{btn.setAttribute('data-like','🩶');countEl.textContent=count-1;});}}
+function addComment(e,id){e.preventDefault();let f=e.target;skapi.postRecord(e,{table:{name:'comments',access_group:'authorized'},index:{name:'comment.'+id,value:true}}).then(c=>{let div=document.createElement('div');div.textContent=c.data.comment;document.getElementById('comments-'+id).prepend(div);f.reset();});}
+let fetchOpt={limit:5,fetchMore:false,ascending:false};
+function initialFetch(){document.getElementById('posts').innerHTML='';fetchOpt.fetchMore=false;getPosts();}
+function getPosts(){skapi.getRecords(fetchQuery,fetchOpt).then(async res=>{let posts=res.list.map(p=>createArticle(p));for(let p of await Promise.all(posts)){document.getElementById('posts').appendChild(p);}document.getElementById('more').style.display=res.endOfList?'none':'block';fetchOpt.fetchMore=true;});}
+more.onclick=getPosts;
+function disableForm(form,d){form.querySelectorAll('input,textarea').forEach(i=>i.disabled=d);}
+</script>
+</body>
+</html>

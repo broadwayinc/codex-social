@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/skapi-js@latest/dist/skapi.js"></script>
+<script src="service.js"></script>
+<script src="script.js"></script>
+</head>
+<body>
+<header>
+<span>Baksa World</span>
+<nav><a href="index.html">Home</a> <a href="javascript:logout()">Logout</a></nav>
+</header>
+<main>
+<h2>Profile</h2>
+<form id="profileForm" onsubmit="updateProfile(event)">
+<input name="name" placeholder="Name">
+<input type="file" id="pic" accept="image/*">
+<input type="submit" value="Save">
+</form>
+<img id="profilePic" style="max-width:100%;">
+</main>
+<script>
+let current;
+requireLogin().then(u=>{current=u;document.querySelector('[name=name]').value=u.name||'';if(u.picture){profilePic.src=u.picture;}});
+async function updateProfile(e){e.preventDefault();
+ let file=pic.files[0];
+ let url=current.picture;
+ if(file){ let r=await skapi.postRecord(e,{table:'profile_pics',progress:p=>{}}); url=r.bin.pic[0].url; }
+ skapi.updateProfile({name:e.target.name.value,picture:url}).then(()=>location.reload());
+}
+</script>
+</body>
+</html>
